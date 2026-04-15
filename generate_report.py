@@ -72,7 +72,7 @@ C_ACCENT2 = colors.HexColor('#ff6584')
 C_GREEN   = colors.HexColor('#43e97b')
 C_YELLOW  = colors.HexColor('#ffd166')
 C_TEXT    = colors.HexColor('#e8eaf6')
-C_MUTED   = colors.HexColor('#8b90a8')
+C_MUTED   = colors.black
 C_WHITE   = colors.white
 C_BLACK   = colors.black
 
@@ -152,7 +152,7 @@ S_H3 = style('S_H3',
     spaceBefore=6, spaceAfter=3, leading=13)
 
 S_BODY = style('S_BODY',
-    fontSize=9, fontName='Helvetica', textColor=colors.HexColor('#ccccdd'),
+    fontSize=9, fontName='Helvetica', textColor=colors.black,
     spaceBefore=2, spaceAfter=4, leading=14, alignment=TA_JUSTIFY)
 
 S_CODE = style('S_CODE',
@@ -199,7 +199,7 @@ def metrics_table(rows, col_widths=None):
         ('FONTNAME',     (0,0), (-1,0),  'Helvetica-Bold'),
         ('FONTSIZE',     (0,0), (-1,0),  9),
         ('BACKGROUND',   (0,1), (-1,-1), colors.HexColor('#16192a')),
-        ('TEXTCOLOR',    (0,1), (-1,-1), colors.HexColor('#ccccdd')),
+        ('TEXTCOLOR',    (0,1), (-1,-1), colors.black),
         ('FONTNAME',     (0,1), (-1,-1), 'Helvetica'),
         ('FONTSIZE',     (0,1), (-1,-1), 8.5),
         ('ROWBACKGROUNDS',(0,1),(-1,-1), [colors.HexColor('#16192a'),
