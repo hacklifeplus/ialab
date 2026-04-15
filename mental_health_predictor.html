@@ -1,0 +1,900 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Predictor de Salud Mental IT</title>
+<style>
+  :root {
+    --bg: #0f1117;
+    --surface: #1a1d27;
+    --card: #21253a;
+    --border: #2e3250;
+    --accent: #6c63ff;
+    --accent2: #ff6584;
+    --green: #43e97b;
+    --yellow: #ffd166;
+    --text: #e8eaf6;
+    --muted: #8b90a8;
+    --radius: 12px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 24px 16px;
+  }
+  header {
+    text-align: center;
+    margin-bottom: 32px;
+  }
+  header h1 {
+    font-size: 2rem;
+    font-weight: 700;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  header p {
+    color: var(--muted);
+    margin-top: 8px;
+    font-size: 0.95rem;
+  }
+  .badge {
+    display: inline-block;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 4px 14px;
+    font-size: 0.78rem;
+    color: var(--muted);
+    margin-top: 10px;
+  }
+  .layout {
+    display: grid;
+    grid-template-columns: 1fr 340px;
+    gap: 20px;
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+  @media (max-width: 780px) {
+    .layout { grid-template-columns: 1fr; }
+  }
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 24px;
+  }
+  .card h2 {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--accent);
+    text-transform: uppercase;
+    letter-spacing: .05em;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+  }
+  @media (max-width: 520px) {
+    .form-grid { grid-template-columns: 1fr; }
+  }
+  .field { display: flex; flex-direction: column; gap: 6px; }
+  .field label {
+    font-size: 0.82rem;
+    color: var(--muted);
+    font-weight: 500;
+  }
+  .field select, .field input {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    padding: 9px 12px;
+    font-size: 0.9rem;
+    outline: none;
+    transition: border-color .2s;
+    width: 100%;
+  }
+  .field select:focus, .field input:focus {
+    border-color: var(--accent);
+  }
+  .field select option { background: var(--surface); }
+  .btn {
+    margin-top: 20px;
+    width: 100%;
+    padding: 13px;
+    background: linear-gradient(135deg, var(--accent), #8b5cf6);
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity .2s, transform .1s;
+  }
+  .btn:hover { opacity: .9; }
+  .btn:active { transform: scale(.98); }
+
+  /* ── Panel de resultado ── */
+  .result-panel { position: sticky; top: 20px; }
+  .result-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 24px;
+    text-align: center;
+  }
+  .result-title {
+    font-size: 0.82rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    margin-bottom: 16px;
+  }
+  .gauge-wrap { position: relative; margin: 0 auto 16px; width: 180px; height: 100px; }
+  .gauge-bg, .gauge-fill {
+    fill: none;
+    stroke-width: 18;
+    stroke-linecap: round;
+  }
+  .gauge-bg { stroke: var(--border); }
+  .gauge-fill { stroke: var(--accent); transition: stroke-dashoffset .6s ease, stroke .4s; }
+  .gauge-pct {
+    position: absolute;
+    bottom: 0; left: 50%;
+    transform: translateX(-50%);
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--text);
+  }
+  .verdict {
+    font-size: 1.15rem;
+    font-weight: 700;
+    padding: 10px 0 4px;
+  }
+  .verdict.positive { color: var(--accent2); }
+  .verdict.negative { color: var(--green); }
+  .verdict-sub { font-size: 0.85rem; color: var(--muted); margin-bottom: 18px; }
+
+  .bar-list { list-style: none; }
+  .bar-list li {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+    font-size: 0.83rem;
+  }
+  .bar-list .feat-name { flex: 0 0 145px; color: var(--muted); text-align: right; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .bar-track { flex: 1; background: var(--surface); border-radius: 4px; height: 8px; overflow: hidden; }
+  .bar-fill { height: 100%; border-radius: 4px; background: linear-gradient(90deg, var(--accent), var(--accent2)); transition: width .5s ease; }
+  .bar-val { flex: 0 0 36px; text-align: right; color: var(--text); font-weight: 600; }
+
+  /* info tooltip */
+  .info-box {
+    background: var(--surface);
+    border-left: 3px solid var(--accent);
+    border-radius: 8px;
+    padding: 12px 14px;
+    font-size: 0.82rem;
+    color: var(--muted);
+    margin-top: 16px;
+    line-height: 1.6;
+    text-align: left;
+  }
+
+  /* model stats bar */
+  .stats-row {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+  }
+  .stat-chip {
+    flex: 1;
+    min-width: 90px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 10px 12px;
+    text-align: center;
+  }
+  .stat-chip .val { font-size: 1.3rem; font-weight: 700; color: var(--accent); }
+  .stat-chip .lbl { font-size: 0.72rem; color: var(--muted); margin-top: 2px; }
+
+  .placeholder {
+    text-align: center;
+    padding: 40px 10px;
+    color: var(--muted);
+  }
+  .placeholder svg { width: 60px; height: 60px; opacity: .3; margin-bottom: 12px; }
+  .placeholder p { font-size: 0.88rem; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>&#129504; Predictor de Salud Mental IT</h1>
+  <p>Modelo de Machine Learning — Decision Tree (AUC-ROC 88%)</p>
+  <span class="badge">Dataset: OSMI Mental Health in Tech Survey &nbsp;|&nbsp; 1 259 registros</span>
+</header>
+
+<div class="layout">
+
+  <!-- ── FORMULARIO ── -->
+  <div>
+    <div class="card">
+      <h2>&#128203; Datos del empleado</h2>
+
+      <div class="stats-row">
+        <div class="stat-chip"><div class="val">88%</div><div class="lbl">AUC-ROC</div></div>
+        <div class="stat-chip"><div class="val">88%</div><div class="lbl">Accuracy CV</div></div>
+        <div class="stat-chip"><div class="val">5-fold</div><div class="lbl">Validación</div></div>
+        <div class="stat-chip"><div class="val">22</div><div class="lbl">Variables</div></div>
+      </div>
+
+      <form id="predForm">
+        <div class="form-grid">
+
+          <div class="field">
+            <label>Edad</label>
+            <input type="number" id="Age" min="16" max="80" value="30" required>
+          </div>
+
+          <div class="field">
+            <label>Género</label>
+            <select id="Gender">
+              <option value="Male">Male</option>
+              <option value="Female">Female</option>
+              <option value="Other">Other / No binario</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label>¿Trabaja por cuenta propia?</label>
+            <select id="self_employed">
+              <option value="No">No</option>
+              <option value="Yes">Sí</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label>¿Historial familiar de salud mental?</label>
+            <select id="family_history">
+              <option value="No">No</option>
+              <option value="Yes">Sí</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label>¿El trabajo interfiere con salud mental?</label>
+            <select id="work_interfere">
+              <option value="Never">Nunca</option>
+              <option value="Rarely">Raramente</option>
+              <option value="Sometimes" selected>A veces</option>
+              <option value="Often">Frecuentemente</option>
+              <option value="Unknown">No sé / N/A</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label>Tamaño de la empresa</label>
+            <select id="no_employees">
+              <option value="1-5">1-5</option>
+              <option value="6-25">6-25</option>
+              <option value="26-100" selected>26-100</option>
+              <option value="100-500">100-500</option>
+              <option value="500-1000">500-1000</option>
+              <option value="More than 1000">+1000</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label>¿Trabaja de forma remota?</label>
+            <select id="remote_work">
+              <option value="No">No</option>
+              <option value="Yes">Sí</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label>¿Empresa tecnológica?</label>
+            <select id="tech_company">
+              <option value="Yes" selected>Sí</option>
+              <option value="No">No</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label>¿La empresa ofrece beneficios de salud mental?</label>
+            <select id="benefits">
+              <option value="Yes" selected>Sí</option>
+              <option value="No">No</option>
+              <option value="Don't know">No sé</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label>¿Conoce las opciones de atención?</label>
+            <select id="care_options">
+              <option value="Yes">Sí</option>
+              <option value="No" selected>No</option>
+              <option value="Not sure">No estoy seguro/a</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label>¿La empresa tiene programa de bienestar?</label>
+            <select id="wellness_program">
+              <option value="Yes">Sí</option>
+              <option value="No" selected>No</option>
+              <option value="Don't know">No sé</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label>¿La empresa ayuda a buscar ayuda?</label>
+            <select id="seek_help">
+              <option value="Yes">Sí</option>
+              <option value="No" selected>No</option>
+              <option value="Don't know">No sé</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label>¿Se garantiza anonimidad al usar servicios?</label>
+            <select id="anonymity">
+              <option value="Yes">Sí</option>
+              <option value="No">No</option>
+              <option value="Don't know" selected>No sé</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label>¿Qué tan fácil es tomar baja por salud mental?</label>
+            <select id="leave">
+              <option value="Very easy">Muy fácil</option>
+              <option value="Somewhat easy" selected>Algo fácil</option>
+              <option value="Somewhat difficult">Algo difícil</option>
+              <option value="Very difficult">Muy difícil</option>
+              <option value="Don't know">No sé</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label>¿Consecuencias neg. por hablar de salud mental?</label>
+            <select id="mental_health_consequence">
+              <option value="No" selected>No</option>
+              <option value="Yes">Sí</option>
+              <option value="Maybe">Tal vez</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label>¿Consecuencias neg. por hablar de salud física?</label>
+            <select id="phys_health_consequence">
+              <option value="No" selected>No</option>
+              <option value="Yes">Sí</option>
+              <option value="Maybe">Tal vez</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label>¿Hablarías de salud mental con compañeros?</label>
+            <select id="coworkers">
+              <option value="Yes">Sí</option>
+              <option value="No">No</option>
+              <option value="Some of them" selected>Con algunos</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label>¿Hablarías de salud mental con tu jefe?</label>
+            <select id="supervisor">
+              <option value="Yes" selected>Sí</option>
+              <option value="No">No</option>
+              <option value="Some of them">Con alguno</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label>¿Mencionarías salud mental en una entrevista?</label>
+            <select id="mental_health_interview">
+              <option value="Yes">Sí</option>
+              <option value="No" selected>No</option>
+              <option value="Maybe">Tal vez</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label>¿Mencionarías salud física en una entrevista?</label>
+            <select id="phys_health_interview">
+              <option value="Yes">Sí</option>
+              <option value="No">No</option>
+              <option value="Maybe" selected>Tal vez</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label>¿La empresa trata igual salud mental y física?</label>
+            <select id="mental_vs_physical">
+              <option value="Yes" selected>Sí</option>
+              <option value="No">No</option>
+              <option value="Don't know">No sé</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label>¿Viste consecuencias neg. en compañeros?</label>
+            <select id="obs_consequence">
+              <option value="No" selected>No</option>
+              <option value="Yes">Sí</option>
+            </select>
+          </div>
+
+        </div><!-- /form-grid -->
+
+        <button type="submit" class="btn">&#128300; Ejecutar Predicción</button>
+      </form>
+    </div>
+  </div><!-- /col izq -->
+
+  <!-- ── RESULTADO ── -->
+  <div class="result-panel">
+    <div class="result-card" id="resultCard">
+      <div class="placeholder">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <path d="M9.5 2a.5.5 0 0 1 .5.5v1h4V2.5a.5.5 0 0 1 1 0V3.5h1A2.5 2.5 0 0 1 19 6v13a2.5 2.5 0 0 1-2.5 2.5h-9A2.5 2.5 0 0 1 5 19V6a2.5 2.5 0 0 1 2.5-2.5H9V2.5a.5.5 0 0 1 .5-.5z"/>
+        </svg>
+        <p>Completa el formulario<br>y pulsa <strong>Ejecutar Predicción</strong></p>
+      </div>
+    </div>
+
+    <div class="card" id="importCard" style="margin-top:16px; display:none;">
+      <h2>&#128200; Factores clave</h2>
+      <ul class="bar-list" id="importList"></ul>
+      <div class="info-box">
+        Las importancias muestran qué variables influyeron más en el modelo durante el entrenamiento (Random Forest). El factor #1 con diferencia es <strong>work_interfere</strong> (27.9%).
+      </div>
+    </div>
+  </div>
+
+</div><!-- /layout -->
+
+<script>
+// ──────────────────────────────────────────────────────────────
+//  MODELO EMBEBIDO — Decision Tree exportado con m2cgen
+//  Entrenado con scikit-learn 1.4 sobre OSMI Survey 2014
+// ──────────────────────────────────────────────────────────────
+function score(input) {
+    var var0;
+    if (input[4] <= 3.5) {
+        if (input[4] <= 0.5) {
+            if (input[14] <= 0.5) {
+                if (input[17] <= 0.5) {
+                    if (input[5] <= 4.5) {
+                        if (input[13] <= 3.0) {
+                            if (input[11] <= 0.5) {
+                                var0 = [0.5, 0.5];
+                            } else {
+                                var0 = [1.0, 0.0];
+                            }
+                        } else {
+                            if (input[0] <= -0.6292301565408707) {
+                                var0 = [1.0, 0.0];
+                            } else {
+                                var0 = [0.0, 1.0];
+                            }
+                        }
+                    } else {
+                        var0 = [0.0, 1.0];
+                    }
+                } else {
+                    if (input[0] <= 1.7115039229393005) {
+                        if (input[5] <= 1.5) {
+                            if (input[13] <= 3.5) {
+                                var0 = [0.8125, 0.1875];
+                            } else {
+                                var0 = [0.0, 1.0];
+                            }
+                        } else {
+                            if (input[6] <= 0.5) {
+                                var0 = [1.0, 0.0];
+                            } else {
+                                var0 = [0.7142857142857143, 0.2857142857142857];
+                            }
+                        }
+                    } else {
+                        if (input[15] <= 0.5) {
+                            var0 = [0.0, 1.0];
+                        } else {
+                            if (input[17] <= 1.5) {
+                                var0 = [0.0, 1.0];
+                            } else {
+                                var0 = [1.0, 0.0];
+                            }
+                        }
+                    }
+                }
+            } else {
+                if (input[0] <= 2.8130258321762085) {
+                    if (input[3] <= 0.5) {
+                        if (input[0] <= 0.8853624761104584) {
+                            if (input[0] <= -1.0423008799552917) {
+                                var0 = [0.8571428571428571, 0.14285714285714285];
+                            } else {
+                                var0 = [1.0, 0.0];
+                            }
+                        } else {
+                            if (input[19] <= 1.5) {
+                                var0 = [0.9, 0.1];
+                            } else {
+                                var0 = [0.0, 1.0];
+                            }
+                        }
+                    } else {
+                        if (input[6] <= 0.5) {
+                            if (input[18] <= 0.5) {
+                                var0 = [0.5, 0.5];
+                            } else {
+                                var0 = [0.9444444444444444, 0.05555555555555555];
+                            }
+                        } else {
+                            if (input[0] <= 0.6099819913506508) {
+                                var0 = [0.0, 1.0];
+                            } else {
+                                var0 = [1.0, 0.0];
+                            }
+                        }
+                    }
+                } else {
+                    if (input[21] <= 0.5) {
+                        var0 = [0.0, 1.0];
+                    } else {
+                        var0 = [1.0, 0.0];
+                    }
+                }
+            }
+        } else {
+            if (input[3] <= 0.5) {
+                if (input[8] <= 1.5) {
+                    if (input[12] <= 1.5) {
+                        if (input[0] <= 1.1607429385185242) {
+                            if (input[13] <= 1.5) {
+                                var0 = [0.4020618556701031, 0.5979381443298969];
+                            } else {
+                                var0 = [0.5833333333333334, 0.4166666666666667];
+                            }
+                        } else {
+                            if (input[11] <= 0.5) {
+                                var0 = [0.5, 0.5];
+                            } else {
+                                var0 = [0.14285714285714285, 0.8571428571428571];
+                            }
+                        }
+                    } else {
+                        if (input[0] <= -0.90461066365242) {
+                            if (input[5] <= 3.0) {
+                                var0 = [0.3333333333333333, 0.6666666666666666];
+                            } else {
+                                var0 = [1.0, 0.0];
+                            }
+                        } else {
+                            if (input[16] <= 0.5) {
+                                var0 = [0.6666666666666666, 0.3333333333333333];
+                            } else {
+                                var0 = [0.15384615384615385, 0.8461538461538461];
+                            }
+                        }
+                    }
+                } else {
+                    if (input[9] <= 1.5) {
+                        if (input[16] <= 1.5) {
+                            if (input[21] <= 0.5) {
+                                var0 = [0.48148148148148145, 0.5185185185185185];
+                            } else {
+                                var0 = [0.0, 1.0];
+                            }
+                        } else {
+                            var0 = [0.0, 1.0];
+                        }
+                    } else {
+                        if (input[0] <= -1.0423008799552917) {
+                            if (input[12] <= 1.0) {
+                                var0 = [0.0, 1.0];
+                            } else {
+                                var0 = [0.6666666666666666, 0.3333333333333333];
+                            }
+                        } else {
+                            if (input[10] <= 1.5) {
+                                var0 = [0.0, 1.0];
+                            } else {
+                                var0 = [0.14705882352941177, 0.8529411764705882];
+                            }
+                        }
+                    }
+                }
+            } else {
+                if (input[9] <= 1.5) {
+                    if (input[0] <= 0.1969112530350685) {
+                        if (input[16] <= 0.5) {
+                            if (input[14] <= 1.5) {
+                                var0 = [0.5, 0.5];
+                            } else {
+                                var0 = [0.13043478260869565, 0.8695652173913043];
+                            }
+                        } else {
+                            if (input[1] <= 0.5) {
+                                var0 = [0.0, 1.0];
+                            } else {
+                                var0 = [0.15476190476190477, 0.8452380952380952];
+                            }
+                        }
+                    } else {
+                        if (input[5] <= 1.5) {
+                            if (input[0] <= 1.642658770084381) {
+                                var0 = [0.0, 1.0];
+                            } else {
+                                var0 = [0.4, 0.6];
+                            }
+                        } else {
+                            if (input[0] <= 1.0230527222156525) {
+                                var0 = [0.4375, 0.5625];
+                            } else {
+                                var0 = [0.2, 0.8];
+                            }
+                        }
+                    }
+                } else {
+                    if (input[12] <= 0.5) {
+                        if (input[11] <= 1.5) {
+                            if (input[21] <= 0.5) {
+                                var0 = [0.06976744186046512, 0.9302325581395349];
+                            } else {
+                                var0 = [0.25, 0.75];
+                            }
+                        } else {
+                            if (input[5] <= 1.5) {
+                                var0 = [0.8, 0.2];
+                            } else {
+                                var0 = [0.15384615384615385, 0.8461538461538461];
+                            }
+                        }
+                    } else {
+                        if (input[20] <= 1.5) {
+                            var0 = [0.0, 1.0];
+                        } else {
+                            if (input[17] <= 0.5) {
+                                var0 = [0.3333333333333333, 0.6666666666666666];
+                            } else {
+                                var0 = [0.022727272727272728, 0.9772727272727273];
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    } else {
+        if (input[16] <= 1.5) {
+            if (input[5] <= 2.5) {
+                if (input[1] <= 0.5) {
+                    if (input[15] <= 0.5) {
+                        var0 = [0.0, 1.0];
+                    } else {
+                        var0 = [1.0, 0.0];
+                    }
+                } else {
+                    if (input[0] <= -0.766920417547226) {
+                        if (input[0] <= -0.90461066365242) {
+                            var0 = [1.0, 0.0];
+                        } else {
+                            if (input[17] <= 0.5) {
+                                var0 = [1.0, 0.0];
+                            } else {
+                                var0 = [0.8, 0.2];
+                            }
+                        }
+                    } else {
+                        var0 = [1.0, 0.0];
+                    }
+                }
+            } else {
+                var0 = [1.0, 0.0];
+            }
+        } else {
+            if (input[21] <= 0.5) {
+                if (input[5] <= 0.5) {
+                    if (input[0] <= -0.285004585981369) {
+                        var0 = [1.0, 0.0];
+                    } else {
+                        if (input[0] <= -0.009624101221561432) {
+                            var0 = [0.0, 1.0];
+                        } else {
+                            var0 = [1.0, 0.0];
+                        }
+                    }
+                } else {
+                    var0 = [1.0, 0.0];
+                }
+            } else {
+                var0 = [0.0, 1.0];
+            }
+        }
+    }
+    return var0;
+}
+
+// ──────────────────────────────────────────────────────────────
+//  METADATOS DE PREPROCESAMIENTO
+// ──────────────────────────────────────────────────────────────
+const AGE_MEDIAN = 31.0;
+const AGE_MEAN   = 32.069896743;
+const AGE_STD    = 7.262678875;
+
+// Orden fijo de features: [Age(norm), Gender_idx, self_employed_idx, family_history_idx,
+//   work_interfere_idx, no_employees_idx, remote_work_idx, tech_company_idx,
+//   benefits_idx, care_options_idx, wellness_program_idx, seek_help_idx,
+//   anonymity_idx, leave_idx, mental_health_consequence_idx, phys_health_consequence_idx,
+//   coworkers_idx, supervisor_idx, mental_health_interview_idx, phys_health_interview_idx,
+//   mental_vs_physical_idx, obs_consequence_idx]
+
+const CAT_CATEGORIES = {
+  Gender:                    ["Female","Male","Other"],
+  self_employed:             ["No","Yes"],
+  family_history:            ["No","Yes"],
+  work_interfere:            ["Never","Often","Rarely","Sometimes","Unknown"],
+  no_employees:              ["1-5","100-500","26-100","500-1000","6-25","More than 1000"],
+  remote_work:               ["No","Yes"],
+  tech_company:              ["No","Yes"],
+  benefits:                  ["Don't know","No","Yes"],
+  care_options:              ["No","Not sure","Yes"],
+  wellness_program:          ["Don't know","No","Yes"],
+  seek_help:                 ["Don't know","No","Yes"],
+  anonymity:                 ["Don't know","No","Yes"],
+  leave:                     ["Don't know","Somewhat difficult","Somewhat easy","Very difficult","Very easy"],
+  mental_health_consequence: ["Maybe","No","Yes"],
+  phys_health_consequence:   ["Maybe","No","Yes"],
+  coworkers:                 ["No","Some of them","Yes"],
+  supervisor:                ["No","Some of them","Yes"],
+  mental_health_interview:   ["Maybe","No","Yes"],
+  phys_health_interview:     ["Maybe","No","Yes"],
+  mental_vs_physical:        ["Don't know","No","Yes"],
+  obs_consequence:           ["No","Yes"]
+};
+
+const CAT_ORDER = [
+  "Gender","self_employed","family_history","work_interfere","no_employees",
+  "remote_work","tech_company","benefits","care_options","wellness_program",
+  "seek_help","anonymity","leave","mental_health_consequence",
+  "phys_health_consequence","coworkers","supervisor","mental_health_interview",
+  "phys_health_interview","mental_vs_physical","obs_consequence"
+];
+
+const FEATURE_IMPORTANCES = [
+  { name: "work_interfere",            val: 27.9 },
+  { name: "family_history",            val:  9.7 },
+  { name: "Age",                       val:  9.2 },
+  { name: "care_options",              val:  5.3 },
+  { name: "no_employees",              val:  4.9 },
+  { name: "leave",                     val:  4.2 },
+  { name: "benefits",                  val:  3.9 },
+  { name: "mental_health_consequence", val:  3.1 },
+  { name: "coworkers",                 val:  3.1 },
+  { name: "supervisor",                val:  3.1 },
+];
+
+// ──────────────────────────────────────────────────────────────
+//  LÓGICA DE PREDICCIÓN
+// ──────────────────────────────────────────────────────────────
+function encodeInput(formData) {
+  const age = parseFloat(formData.Age) || AGE_MEDIAN;
+  const ageNorm = (age - AGE_MEAN) / AGE_STD;
+
+  const catEncoded = CAT_ORDER.map(col => {
+    const val = formData[col];
+    const cats = CAT_CATEGORIES[col];
+    const idx = cats.indexOf(val);
+    return idx === -1 ? 0 : idx;   // unknown → 0
+  });
+
+  return [ageNorm, ...catEncoded];
+}
+
+function getFormData() {
+  const data = {};
+  data.Age = document.getElementById('Age').value;
+  CAT_ORDER.forEach(col => {
+    data[col] = document.getElementById(col).value;
+  });
+  return data;
+}
+
+// ──────────────────────────────────────────────────────────────
+//  RENDER DEL RESULTADO
+// ──────────────────────────────────────────────────────────────
+function renderResult(prob) {
+  const pct = Math.round(prob * 100);
+  const isPositive = prob >= 0.5;
+
+  const r = 70, cx = 90, cy = 90;
+  const circ = Math.PI * r;          // semicircle circumference ≈ 219.9
+  const filled = circ * prob;
+  const color = isPositive ? '#ff6584' : '#43e97b';
+
+  const card = document.getElementById('resultCard');
+  card.innerHTML = `
+    <div class="result-title">Probabilidad de buscar tratamiento</div>
+    <div class="gauge-wrap" style="width:180px;height:100px;">
+      <svg viewBox="0 0 180 100" width="180" height="100">
+        <path d="M 20 90 A 70 70 0 0 1 160 90"
+              fill="none" stroke="#2e3250" stroke-width="18" stroke-linecap="round"/>
+        <path d="M 20 90 A 70 70 0 0 1 160 90"
+              fill="none" stroke="${color}" stroke-width="18" stroke-linecap="round"
+              stroke-dasharray="${circ}"
+              stroke-dashoffset="${circ - filled}"
+              style="transition:stroke-dashoffset .6s ease"/>
+        <text x="90" y="88" text-anchor="middle"
+              font-size="22" font-weight="700" fill="#e8eaf6">${pct}%</text>
+      </svg>
+    </div>
+    <div class="verdict ${isPositive ? 'positive' : 'negative'}">
+      ${isPositive ? '⚠️ Probable que busque tratamiento' : '✅ Poco probable que busque tratamiento'}
+    </div>
+    <div class="verdict-sub">
+      ${isPositive
+        ? 'El perfil indica señales de que la persona podría estar buscando o necesitando apoyo profesional.'
+        : 'El perfil no muestra indicadores fuertes de búsqueda de tratamiento activa.'}
+    </div>
+    <div style="display:flex;gap:10px;justify-content:center;">
+      <div class="stat-chip">
+        <div class="val" style="color:${color}">${pct}%</div>
+        <div class="lbl">Prob. tratamiento</div>
+      </div>
+      <div class="stat-chip">
+        <div class="val" style="color:#6c63ff">${100-pct}%</div>
+        <div class="lbl">Prob. sin tratamiento</div>
+      </div>
+    </div>
+  `;
+}
+
+function renderImportances() {
+  const card = document.getElementById('importCard');
+  const list = document.getElementById('importList');
+  card.style.display = 'block';
+  list.innerHTML = FEATURE_IMPORTANCES.map(f => `
+    <li>
+      <span class="feat-name">${f.name}</span>
+      <span class="bar-track">
+        <span class="bar-fill" style="width:${(f.val/28*100).toFixed(1)}%"></span>
+      </span>
+      <span class="bar-val">${f.val}%</span>
+    </li>
+  `).join('');
+}
+
+// ──────────────────────────────────────────────────────────────
+//  EVENTO SUBMIT
+// ──────────────────────────────────────────────────────────────
+document.getElementById('predForm').addEventListener('submit', function(e) {
+  e.preventDefault();
+  const formData = getFormData();
+  const inputVec = encodeInput(formData);
+  const output   = score(inputVec);
+  // output = [prob_no_tratamiento, prob_tratamiento]
+  const probTratamiento = output[1];
+  renderResult(probTratamiento);
+  renderImportances();
+});
+</script>
+</body>
+</html>
