@@ -763,28 +763,6 @@ def build_pdf():
         'garantizando que no hay data leakage entre train y test:'
     ))
 
-    pipe_code = '''
-# Columnas numéricas → mediana + StandardScaler
-numeric_pipe = Pipeline([
-    ('imputer', SimpleImputer(strategy='median')),
-    ('scaler',  StandardScaler())          # media=32.07, std=7.26
-])
-
-# Columnas categóricas → moda + OrdinalEncoder
-categorical_pipe = Pipeline([
-    ('imputer', SimpleImputer(strategy='most_frequent')),
-    ('encoder', OrdinalEncoder(
-        handle_unknown='use_encoded_value',
-        unknown_value=-1                   # valores no vistos → -1
-    ))
-])
-
-preprocessor = ColumnTransformer([
-    ('num', numeric_pipe,    num_cols),    # ['Age']
-    ('cat', categorical_pipe, cat_cols)    # 21 columnas categóricas
-])
-'''
-    story.extend(code(pipe_code))
     story.append(p(
         '<b>Decisión:</b> Se eligió OrdinalEncoder sobre OneHotEncoder porque los árboles '
         'de decisión manejan variables ordinales numéricas eficientemente sin incrementar '
@@ -1059,40 +1037,7 @@ preprocessor = ColumnTransformer([
         'recorrido recursivo del árbol y generación de código con bloques if/else:'
     ))
 
-    export_code = '''
-import m2cgen
 
-# Exportar Decision Tree entrenado a JavaScript
-js_code = m2cgen.export_to_javascript(dt_model)
-
-# Resultado: función score(input) que devuelve [prob_no, prob_si]
-# Tamaño: ~10.4 KB — perfectamente embebible en HTML
-'''
-    story.extend(code(export_code))
-    story.append(p('Fragmento del código JavaScript generado automáticamente:'))
-
-    js_snippet = '''
-function score(input) {
-  var var0;
-  if (input[4] <= 3.5) {          // work_interfere (ordinal) <= 3.5
-    if (input[4] <= 0.5) {        // work_interfere == "Never" (índice 0)
-      if (input[14] <= 0.5) {     // mental_health_consequence == "Maybe"
-        if (input[17] <= 0.5) {   // supervisor == "No"
-          ...
-          var0 = [1.0, 0.0];     // → No tratamiento (probabilidad 100%)
-        }
-      }
-    } else {
-      if (input[3] <= 0.5) {      // family_history == "No"
-        ...
-        var0 = [0.597, 0.402];   // → probabilidad 40.2% tratamiento
-      }
-    }
-  }
-  return var0;                    // [prob_no, prob_si]
-}
-'''
-    story.extend(code(js_snippet))
 
     story.append(h2('8.2 Pipeline de preprocesamiento en JavaScript'))
     story.append(p(
@@ -1100,27 +1045,6 @@ function score(input) {
         'los mismos valores que habrían sido transformados antes de llegar al modelo:'
     ))
 
-    preproc_code = '''
-// Estadísticas de Age (StandardScaler) extraídas del modelo entrenado
-const AGE_MEAN = 32.069896;   // media del train set
-const AGE_STD  = 7.262678;    // desviación estándar del train set
-
-// Codificación ordinal de categorías (orden lexicográfico de sklearn)
-const CAT_CATEGORIES = {
-  Gender:         ["Female", "Male", "Other"],        // Female→0, Male→1, Other→2
-  work_interfere: ["Never","Often","Rarely","Sometimes","Unknown"],
-  // ... 21 columnas
-};
-
-function encodeInput(formData) {
-  const ageNorm = (age - AGE_MEAN) / AGE_STD;     // StandardScaler
-  const cats = CAT_ORDER.map(col => {
-    return CAT_CATEGORIES[col].indexOf(formData[col]); // OrdinalEncoder
-  });
-  return [ageNorm, ...cats];  // vector de 22 features
-}
-'''
-    story.extend(code(preproc_code))
 
     story.append(h2('8.3 Flujo completo de predicción en el navegador'))
 
@@ -1189,19 +1113,6 @@ function encodeInput(formData) {
         '<b>https://github.com/hacklifeplus/ialab</b>.'
     ))
 
-    repro_code = '''
-# Instalar dependencias
-apt-get install python3-pandas python3-sklearn python3-matplotlib python3-seaborn
-pip3 install m2cgen reportlab --break-system-packages
-
-# Reproducir el modelo y la app HTML
-python3 mental_health_ml.py          # entrenamiento + métricas + gráficos
-                                     # genera output/modelo_mental_health.joblib
-
-# Reproducir este informe
-python3 generate_report.py           # genera output/informe_mental_health_predictor.pdf
-'''
-    story.extend(code(repro_code))
 
     story.append(sp(6))
     story.append(h2('10.1 Versiones del entorno'))

@@ -815,21 +815,6 @@ def build():
         'en un espacio de características de alta dimensión implícito, sin necesidad '
         'de computarlo explícitamente (kernel trick):'
     ))
-    story.extend(code_block('''
-# Función de decisión SVM (clasificación binaria):
-f(x) = Σᵢ αᵢ · yᵢ · K(xᵢ, x) + b
-
-# Kernel RBF (Radial Basis Function):
-K(xᵢ, x) = exp(−γ · ‖xᵢ − x‖²)
-
-# Clasificación:
-ŷ = sign(f(x))     →  +1 si f(x) ≥ 0 (umbral default)
-                   →  +1 si f(x) ≥ θ  (umbral optimizado θ = −0.958)
-
-# Probabilidad (Platt scaling):
-P(y=1|x) = 1 / (1 + exp(A·f(x) + B))
-           donde A y B se ajustan por validación cruzada interna
-'''))
     story += [sp(4)]
 
     svm_params = [
@@ -883,25 +868,6 @@ P(y=1|x) = 1 / (1 + exp(A·f(x) + B))
     story += [sp(6)]
 
     story.append(h2('5.1 Algoritmo de búsqueda del umbral óptimo'))
-    story.extend(code_block('''
-# Criterio: maximizar Recall con Precision ≥ 0.60
-# (Precision mínima para evitar demasiadas falsas alarmas)
-
-precs, recs, threshs = precision_recall_curve(y_test, y_dec_svm)
-
-# Filtrar umbrales donde Precision >= 0.60
-valid = [(r, p, t)
-         for p, r, t in zip(precs[:-1], recs[:-1], threshs)
-         if p >= 0.60]
-
-# Seleccionar el de mayor Recall
-best_r, best_p, best_thresh = max(valid, key=lambda x: x[0])
-
-# Resultado:
-# best_thresh = -0.9578   (en espacio de función de decisión)
-# best_r      = 0.9688    (Recall en test)
-# best_p      = 0.6049    (Precision en test)
-'''))
     story += [sp(4)]
 
     story.append(h2('5.2 Comparativa default vs umbral óptimo'))
@@ -1013,58 +979,9 @@ best_r, best_p, best_thresh = max(valid, key=lambda x: x[0])
     story += [sp(6)]
 
     story.append(h2('7.1 Exportación del modelo a JSON'))
-    story.extend(code_block('''
-# Los componentes del SVM se extraen directamente del objeto sklearn
-clf = svm_pipe.named_steps['clf']
-
-payload = {
-  'support_vectors': clf.support_vectors_.tolist(),   # (681, 22)
-  'dual_coef':       clf.dual_coef_[0].tolist(),       # (681,)
-  'intercept':       float(clf.intercept_[0]),         # -1.2037
-  'gamma':           float(clf._gamma),                # 0.041196
-  'platt_a':         float(clf.probA_[0]),             # -2.0640
-  'platt_b':         float(clf.probB_[0]),             # -0.2220
-  'decision_threshold': float(best_t_dec),             # -0.9578
-  'cat_categories':  { col: cats for col, cats ... },  # diccionario ordinal
-  'num_stats':       { median, mean, std }             # para StandardScaler
-}
-# Tamaño total del JSON: 77.1 KB
-json.dump(payload, open('svm_model.json', 'w'), separators=(',',':'))
-'''))
     story += [sp(4)]
 
     story.append(h2('7.2 Implementación del kernel RBF en JavaScript'))
-    story.extend(code_block('''
-// Vectores de soporte y coeficientes dual (embebidos como constantes JS)
-const SV  = MODEL.support_vectors;   // array (681, 22)
-const DC  = MODEL.dual_coef;         // array (681,)
-const γ   = MODEL.gamma;             // 0.041196
-const b   = MODEL.intercept;         // -1.2037
-const θ   = MODEL.decision_threshold; // -0.9578
-
-// Kernel RBF: K(sᵢ, x) = exp(−γ · ‖sᵢ − x‖²)
-function rbf(sv_row, x) {
-  let sq = 0;
-  for (let j = 0; j < x.length; j++) {
-    const d = sv_row[j] - x[j];
-    sq += d * d;
-  }
-  return Math.exp(-γ * sq);
-}
-
-// Función de decisión: f(x) = Σ αᵢ · K(SVᵢ, x) + b
-function decision(x) {
-  let f = b;
-  for (let i = 0; i < SV.length; i++)
-    f += DC[i] * rbf(SV[i], x);
-  return f;
-}
-
-// Clasificación con umbral optimizado
-function predict(x) {
-  return decision(x) >= θ;   // true = "buscará tratamiento"
-}
-'''))
     story += [sp(4)]
 
     story.append(h2('7.3 Rendimiento de la inferencia en el navegador'))
